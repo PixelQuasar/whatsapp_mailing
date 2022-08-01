@@ -4,6 +4,13 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const bot = require('./scripts/whatsappBot/bot')
 const numberSchema = require('./models/number')
+const fs = require('fs');
+
+function getNumbers(){
+  let rawdata = fs.readFileSync('./staticdata/numbers.json')
+  let numbers = JSON.parse(rawdata)
+  return numbers
+}
 
 // require settings data
 const settings = require('./staticData/settings.js')
@@ -23,15 +30,9 @@ app.use(cors())
 // declare init program function
 async function init (settings) {
 
-  // connect to mongodb
-  mongoose.connect(settings.mongoUrl, {
-		useNewUrlParser: true,
-		useUnifiedTopology: true
-	})
+  // connect to mongod
 
   // function of event on mongodb connection open
-  mongoose.connection.once('open', async () => {
-    // listen http express server
     app.listen(settings.PORT, '0.0.0.0', (err) => {
 			if (err) return new Error(`error in starting server, error: ${err}`)
 			else console.log(`server started on \nPORT: ${settings.PORT}\nURL: ${settings.serverUrl}`)
@@ -43,9 +44,9 @@ async function init (settings) {
       try{
         const message = req.body.message
         console.log(message)
-        const numbers = await numberSchema.find()
+        const numbers = getNumbers()
         console.log(numbers)
-        for (number of numbers){
+        for (number in numbers){
           console.log(number.number)
           bot.sendMessage(`${number.number}@c.us`, message)
         }
@@ -63,8 +64,9 @@ async function init (settings) {
         console.log(numbers)
         for (number of numbers){
           number = number.replaceAll(" ", "").replaceAll("+", "").replaceAll("(", "").replaceAll(")", "").replaceAll("-", "")
-          const savedNumber = new numberSchema({number: number, status: 1})
-          await savedNumber.save()
+          const numbers = getNumbers()
+          numbers[number] = {number: number, status: 1}
+          fs.writeFileSync('./staticdata/numbers.json', JSON.stringify(numbers))
         }
         res.sendStatus(200)
       }
@@ -78,12 +80,14 @@ async function init (settings) {
       try{
         const numbers = req.body
         if (numbers.length == 0){
-          await numberSchema.deleteMany({})
+          fs.writeFileSync('./staticdata/numbers.json', "{}")
         }
         else{
           for (number of numbers){
             number = number.replaceAll(" ", "").replaceAll("+", "").replaceAll("(", "").replaceAll(")", "").replaceAll("-", "")
-            await numberSchema.findOneAndDalete({number: number})
+            const numbers = getNumbers()
+            delete numbers[number]
+            fs.writeFileSync('./staticdata/numbers.json', JSON.stringify(numbers))
           }
         }
         res.sendStatus(200)
@@ -116,10 +120,7 @@ async function init (settings) {
     
     // whatsapp mailing http requests
     app.use('/mailing', router)
-	})
 
-  // declare event on mongodb connection open
-  mongoose.connection.emit('open')
 }
 
 init(settings)

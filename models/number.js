@@ -2,7 +2,7 @@
 const mongoose = require("mongoose")
 
 const number = new mongoose.Schema({
-    number: {type: String, unique : true, dropDups: true},
+    number: String,
     status: Number,
 })
 
