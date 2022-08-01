@@ -14,14 +14,12 @@
 }
 ```
 
-## http://localhost:3500/mailing/postMailing - одноразовая рассылка
-пример body:
+## http://localhost:3500/mailing/deleteNumbers - удаление номеров
 ```js
-{
-  "numbers": ["+7701 824 11 10", "+7705553 9966"],
-  "message": "это тест рассылки"
-}
-```
+пример body:
+ ["+7701 824 11 10", "+7705553 9966"]
+ ```
+чтобы очистить базу, оставь массив пустым: []
 
 ## http://localhost:3500/mailing/postMailingByMongo - рассылка по номерам в базе
 пример body:
