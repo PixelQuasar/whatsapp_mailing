@@ -2,9 +2,13 @@ const mongoose = require('mongoose')
 const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
+const qrcode = require('qrcode');
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const { PassThrough } = require('stream');
 const bot = require('./scripts/whatsappBot/bot')
 const numberSchema = require('./models/number')
 const fs = require('fs');
+global.qrcode = undefined
 
 function getNumbers(){
   let rawdata = fs.readFileSync('./staticdata/numbers.json')
@@ -13,7 +17,7 @@ function getNumbers(){
 }
 
 // require settings data
-const settings = require('./staticData/settings.js')
+const settings = require('./staticdata/settings.js')
 
 // initial express js application
 const app = express()
@@ -40,6 +44,23 @@ async function init (settings) {
 
     const router = require('express').Router()
 
+    router.get("/init", async (req, res) => {
+      if (global.qrcode){
+        const qrStream = new PassThrough()
+        const result = await qrcode.toFileStream(qrStream, global.qrcode,
+          {
+            type: 'png',
+            width: 200,
+            errorCorrectionLevel: 'H'
+          }
+        )
+        qrStream.pipe(res)
+      }
+      else{
+        res.send(503)
+      }
+    })
+
     router.post("/postMailingByMongo", async (req, res) => {
       try{
         const message = req.body.message
@@ -63,7 +84,7 @@ async function init (settings) {
         const numbers = req.body
         console.log(numbers)
         for (number of numbers){
-          number = number.replaceAll(" ", "").replaceAll("+", "").replaceAll("(", "").replaceAll(")", "").replaceAll("-", "")
+          number = number.replace(/ /g, "").replace(/+/g, "")
           const numbers = getNumbers()
           numbers[number] = {number: number, status: 1}
           fs.writeFileSync('./staticdata/numbers.json', JSON.stringify(numbers))
@@ -84,7 +105,7 @@ async function init (settings) {
         }
         else{
           for (number of numbers){
-            number = number.replaceAll(" ", "").replaceAll("+", "").replaceAll("(", "").replaceAll(")", "").replaceAll("-", "")
+            number = number.replace(/ /g, "").replace(/+/g, "")
             const numbers = getNumbers()
             delete numbers[number]
             fs.writeFileSync('./staticdata/numbers.json', JSON.stringify(numbers))
@@ -103,7 +124,7 @@ async function init (settings) {
             const numbers = req.body.numbers
             const message = req.body.message
             for (number of numbers){
-              number = number.replaceAll(" ", "").replaceAll("+", "").replaceAll("(", "").replaceAll(")", "").replaceAll("-", "")
+              number = number.replace(/ /g, "").replace(/+/g, "")
                 try{
                   bot.sendMessage(`${number}@c.us`, message)
                 }catch{
