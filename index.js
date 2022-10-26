@@ -3,7 +3,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const qrcode = require('qrcode');
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const { PassThrough } = require('stream');
 const bot = require('./scripts/whatsappBot/bot')
 const numberSchema = require('./models/number')
@@ -119,14 +119,15 @@ async function init (settings) {
       }
     })
 
-    router.post("/postMailing", (req, res) => {
+    router.post("/postMailing", async (req, res) => {
         try{
             const numbers = req.body.numbers
             const message = req.body.message
+            let image = MessageMedia.fromFilePath("assets/testImage.jpg")
             for (number of numbers){
-              number = number.replace(/ /g, "").replace(/+/g, "")
                 try{
-                  bot.sendMessage(`${number}@c.us`, message)
+                  await bot.sendMessage(`${number}@c.us`, message)
+                  await bot.sendMessage(`${number}@c.us`, image, {caption: "test gif"})
                 }catch{
                   console.log("number error")
                 }
